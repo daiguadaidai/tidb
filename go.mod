@@ -1,3 +1,20 @@
+replace (
+	golang.org/x/sys => github.com/golang/sys v0.0.0-20190109145017-48ac38b7c8cb
+	golang.org/x/text => github.com/golang/text v0.3.0
+	golang.org/x/time => github.com/golang/time v0.0.0-20181108054448-85acf8d2951c
+	golang.org/x/net => github.com/golang/net v0.0.0-20190108225652-1e06a53dbb7e
+	golang.org/x/sync => github.com/golang/sync v0.0.0-20180314180146-1d60e4601c6f
+	golang.org/x/tools => github.com/golang/tools v0.0.0-20190130214255-bb1329dc71a0
+	golang.org/x/crypto => github.com/golang/crypto v0.0.0-20180820150726-614d502a4dac
+	golang.org/x/oauth2 => github.com/golang/oauth2 v0.0.0-20180821212333-d2e6202438be
+	golang.org/x/lint => github.com/golang/lint v0.0.0-20181026193005-c67002cb31c3
+	gopkg.in/natefinch/lumberjack.v2 => github.com/natefinch/lumberjack v2.0.0+incompatible
+	gopkg.in/stretchr/testify.v1 => github.com/stretchr/testify v1.2.2
+	google.golang.org/appengine => github.com/golang/appengine v1.4.0
+	google.golang.org/genproto => github.com/google/go-genproto v0.0.0-20190108161440-ae2f86662275
+	google.golang.org/grpc => github.com/grpc/grpc-go v1.17.0
+)
+
 module github.com/daiguadaidai/tidb
 
 require (
@@ -49,7 +66,7 @@ require (
 	github.com/pingcap/goleveldb v0.0.0-20171020122428-b9ff6c35079e
 	github.com/pingcap/kvproto v0.0.0-20190215154024-7f2fc73ef562
 	github.com/pingcap/log v0.0.0-20190214045112-b37da76f67a7
-	github.com/daiguadaidai/parser v0.0.0-20190222082040-fe59ebfc9e10
+	github.com/daiguadaidai/parser v0.0.0-20190223161014-50345b0ec188
 	github.com/pingcap/pd v2.1.0-rc.4+incompatible
 	github.com/pingcap/tidb-tools v2.1.3-0.20190116051332-34c808eef588+incompatible
 	github.com/pingcap/tipb v0.0.0-20190107072121-abbec73437b7
