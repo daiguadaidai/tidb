@@ -11,7 +11,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/cznic/sortutil v0.0.0-20181122101858-f5f958428db8
-	github.com/daiguadaidai/parser v0.0.0-20190224121346-e033e6f9ac8f
+	github.com/daiguadaidai/parser v0.0.0-20190307140446-07810a2fc658
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/go-ole/go-ole v1.2.2 // indirect
