@@ -14,7 +14,10 @@
 package types
 
 import (
+	"context"
 	"fmt"
+	"github.com/daiguadaidai/tidb/util/logutil"
+	"go.uber.org/zap"
 	"math"
 	"sort"
 	"strconv"
@@ -29,7 +32,6 @@ import (
 	"github.com/daiguadaidai/tidb/types/json"
 	"github.com/daiguadaidai/tidb/util/hack"
 	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 // Kind constants.
@@ -1241,7 +1243,7 @@ func (d *Datum) convertToMysqlEnum(sc *stmtctx.StatementContext, target *FieldTy
 		e, err = ParseEnumValue(target.Elems, uintDatum.GetUint64())
 	}
 	if err != nil {
-		log.Error(err)
+		logutil.Logger(context.Background()).Error("convert to MySQL enum failed", zap.Error(err))
 		err = errors.Trace(ErrTruncated)
 	}
 	ret.SetValue(e)
