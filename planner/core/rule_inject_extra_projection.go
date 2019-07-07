@@ -19,6 +19,7 @@ import (
 	"github.com/daiguadaidai/parser/model"
 	"github.com/daiguadaidai/tidb/expression"
 	"github.com/daiguadaidai/tidb/expression/aggregation"
+	"github.com/daiguadaidai/tidb/sessionctx"
 )
 
 // injectExtraProjection is used to extract the expressions of specific
@@ -38,8 +39,8 @@ func NewProjInjector() *projInjector {
 }
 
 func (pe *projInjector) inject(plan PhysicalPlan) PhysicalPlan {
-	for _, child := range plan.Children() {
-		pe.inject(child)
+	for i, child := range plan.Children() {
+		plan.Children()[i] = pe.inject(child)
 	}
 
 	switch p := plan.(type) {
@@ -55,20 +56,24 @@ func (pe *projInjector) inject(plan PhysicalPlan) PhysicalPlan {
 	return plan
 }
 
+// wrapCastForAggFunc wraps the args of an aggregate function with a cast function.
+// If the mode is FinalMode or Partial2Mode, we do not need to wrap cast upon the args,
+// since the types of the args are already the expected.
+func wrapCastForAggFuncs(sctx sessionctx.Context, aggFuncs []*aggregation.AggFuncDesc) {
+	for i := range aggFuncs {
+		if aggFuncs[i].Mode != aggregation.FinalMode && aggFuncs[i].Mode != aggregation.Partial2Mode {
+			aggFuncs[i].WrapCastForAggArgs(sctx)
+		}
+	}
+}
+
 // injectProjBelowAgg injects a ProjOperator below AggOperator. If all the args
 // of `aggFuncs`, and all the item of `groupByItems` are columns or constants,
 // we do not need to build the `proj`.
 func injectProjBelowAgg(aggPlan PhysicalPlan, aggFuncs []*aggregation.AggFuncDesc, groupByItems []expression.Expression) PhysicalPlan {
 	hasScalarFunc := false
 
-	// If the mode is FinalMode, we do not need to wrap cast upon the args,
-	// since the types of the args are already the expected.
-	if len(aggFuncs) > 0 && aggFuncs[0].Mode != aggregation.FinalMode {
-		for _, agg := range aggFuncs {
-			agg.WrapCastForAggArgs(aggPlan.context())
-		}
-	}
-
+	wrapCastForAggFuncs(aggPlan.context(), aggFuncs)
 	for i := 0; !hasScalarFunc && i < len(aggFuncs); i++ {
 		for _, arg := range aggFuncs[i].Args {
 			_, isScalarFunc := arg.(*expression.ScalarFunction)
@@ -152,7 +157,7 @@ func injectProjBelowSort(p PhysicalPlan, orderByItems []*ByItems) PhysicalPlan {
 
 	topProjExprs := make([]expression.Expression, 0, p.Schema().Len())
 	for i := range p.Schema().Columns {
-		col := p.Schema().Columns[i]
+		col := p.Schema().Columns[i].Clone().(*expression.Column)
 		col.Index = i
 		topProjExprs = append(topProjExprs, col)
 	}
@@ -167,9 +172,10 @@ func injectProjBelowSort(p PhysicalPlan, orderByItems []*ByItems) PhysicalPlan {
 	bottomProjSchemaCols := make([]*expression.Column, 0, len(childPlan.Schema().Columns)+numOrderByItems)
 	bottomProjExprs := make([]expression.Expression, 0, len(childPlan.Schema().Columns)+numOrderByItems)
 	for i, col := range childPlan.Schema().Columns {
-		col.Index = i
-		bottomProjSchemaCols = append(bottomProjSchemaCols, col)
-		bottomProjExprs = append(bottomProjExprs, col)
+		newCol := col.Clone().(*expression.Column)
+		newCol.Index = i
+		bottomProjSchemaCols = append(bottomProjSchemaCols, newCol)
+		bottomProjExprs = append(bottomProjExprs, newCol)
 	}
 
 	for _, item := range orderByItems {
@@ -200,5 +206,6 @@ func injectProjBelowSort(p PhysicalPlan, orderByItems []*ByItems) PhysicalPlan {
 	if origChildProj, isChildProj := childPlan.(*PhysicalProjection); isChildProj {
 		refine4NeighbourProj(bottomProj, origChildProj)
 	}
+
 	return topProj
 }

@@ -18,10 +18,10 @@ import (
 
 	"github.com/daiguadaidai/parser/mysql"
 	"github.com/daiguadaidai/tidb/sessionctx"
+	"github.com/daiguadaidai/tidb/util/logutil"
 	"github.com/daiguadaidai/tidb/util/mock"
 	"github.com/ngaut/pools"
 	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 // sessionPool is used to new session.
@@ -82,8 +82,7 @@ func (sg *sessionPool) close() {
 	if sg.mu.closed || sg.resPool == nil {
 		return
 	}
-
-	log.Info("[ddl] closing sessionPool")
+	logutil.BgLogger().Info("[ddl] closing sessionPool")
 	sg.resPool.Close()
 	sg.mu.closed = true
 }

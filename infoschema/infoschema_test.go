@@ -22,6 +22,7 @@ import (
 	"github.com/daiguadaidai/tidb/infoschema"
 	"github.com/daiguadaidai/tidb/kv"
 	"github.com/daiguadaidai/tidb/meta"
+	"github.com/daiguadaidai/tidb/session"
 	"github.com/daiguadaidai/tidb/store/mockstore"
 	"github.com/daiguadaidai/tidb/types"
 	"github.com/daiguadaidai/tidb/util/testleak"
@@ -45,6 +46,10 @@ func (*testSuite) TestT(c *C) {
 	store, err := mockstore.NewMockTikvStore()
 	c.Assert(err, IsNil)
 	defer store.Close()
+	// Make sure it calls perfschema.Init().
+	dom, err := session.BootstrapSession(store)
+	c.Assert(err, IsNil)
+	defer dom.Close()
 
 	handle := infoschema.NewHandle(store)
 	dbName := model.NewCIStr("Test")
@@ -114,7 +119,6 @@ func (*testSuite) TestT(c *C) {
 	txn.Rollback()
 
 	builder.Build()
-
 	is := handle.Get()
 
 	schemaNames := is.AllSchemaNames()
@@ -142,6 +146,15 @@ func (*testSuite) TestT(c *C) {
 	c.Assert(schema, NotNil)
 
 	schema, ok = is.SchemaByName(noexist)
+	c.Assert(ok, IsFalse)
+	c.Assert(schema, IsNil)
+
+	schema, ok = is.SchemaByTable(tblInfo)
+	c.Assert(ok, IsTrue)
+	c.Assert(schema, NotNil)
+
+	noexistTblInfo := &model.TableInfo{ID: 12345, Name: tblInfo.Name}
+	schema, ok = is.SchemaByTable(noexistTblInfo)
 	c.Assert(ok, IsFalse)
 	c.Assert(schema, IsNil)
 
@@ -194,6 +207,32 @@ func (*testSuite) TestT(c *C) {
 	schema, ok = is.SchemaByID(dbID)
 	c.Assert(ok, IsTrue)
 	c.Assert(len(schema.Tables), Equals, 1)
+
+	emptyHandle := handle.EmptyClone()
+	c.Assert(emptyHandle.Get(), IsNil)
+}
+
+func (testSuite) TestMockInfoSchema(c *C) {
+	tblID := int64(1234)
+	tblName := model.NewCIStr("tbl_m")
+	tableInfo := &model.TableInfo{
+		ID:    tblID,
+		Name:  tblName,
+		State: model.StatePublic,
+	}
+	colInfo := &model.ColumnInfo{
+		State:     model.StatePublic,
+		Offset:    0,
+		Name:      model.NewCIStr("h"),
+		FieldType: *types.NewFieldType(mysql.TypeLong),
+		ID:        1,
+	}
+	tableInfo.Columns = []*model.ColumnInfo{colInfo}
+	is := infoschema.MockInfoSchema([]*model.TableInfo{tableInfo})
+	tbl, ok := is.TableByID(tblID)
+	c.Assert(ok, IsTrue)
+	c.Assert(tbl.Meta().Name, Equals, tblName)
+	c.Assert(tbl.Cols()[0].ColumnInfo, Equals, colInfo)
 }
 
 func checkApplyCreateNonExistsSchemaDoesNotPanic(c *C, txn kv.Transaction, builder *infoschema.Builder) {

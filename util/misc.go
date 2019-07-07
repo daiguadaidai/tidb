@@ -19,8 +19,10 @@ import (
 	"time"
 
 	"github.com/daiguadaidai/parser"
+	"github.com/daiguadaidai/parser/terror"
+	"github.com/daiguadaidai/tidb/util/logutil"
 	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -70,8 +72,9 @@ func WithRecovery(exec func(), recoverFn func(r interface{})) {
 			recoverFn(r)
 		}
 		if r != nil {
-			buf := GetStack()
-			log.Errorf("panic in the recoverable goroutine: %v, stack trace:\n%s", r, buf)
+			logutil.BgLogger().Error("panic in the recoverable goroutine",
+				zap.Reflect("r", r),
+				zap.Stack("stack trace"))
 		}
 	}()
 	exec()
@@ -107,7 +110,16 @@ func SyntaxError(err error) error {
 	if err == nil {
 		return nil
 	}
-	log.Errorf("%+v", err)
+	logutil.BgLogger().Error("syntax error", zap.Error(err))
+
+	// If the error is already a terror with stack, pass it through.
+	if errors.HasStack(err) {
+		cause := errors.Cause(err)
+		if _, ok := cause.(*terror.Error); ok {
+			return err
+		}
+	}
+
 	return parser.ErrParse.GenWithStackByArgs(syntaxErrorPrefix, err.Error())
 }
 

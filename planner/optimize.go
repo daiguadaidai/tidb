@@ -20,7 +20,6 @@ import (
 	plannercore "github.com/daiguadaidai/tidb/planner/core"
 	"github.com/daiguadaidai/tidb/privilege"
 	"github.com/daiguadaidai/tidb/sessionctx"
-	"github.com/pingcap/errors"
 )
 
 // Optimize does optimization and creates a Plan.
@@ -40,19 +39,25 @@ func Optimize(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (
 		return nil, err
 	}
 
+	ctx.GetSessionVars().StmtCtx.Tables = builder.GetDBTableInfo()
+	activeRoles := ctx.GetSessionVars().ActiveRoles
 	// Check privilege. Maybe it's better to move this to the Preprocess, but
 	// we need the table information to check privilege, which is collected
 	// into the visitInfo in the logical plan builder.
 	if pm := privilege.GetPrivilegeManager(ctx); pm != nil {
-		if err := plannercore.CheckPrivilege(pm, builder.GetVisitInfo()); err != nil {
+		if err := plannercore.CheckPrivilege(activeRoles, pm, builder.GetVisitInfo()); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := plannercore.CheckTableLock(ctx, is, builder.GetVisitInfo()); err != nil {
+		return nil, err
 	}
 
 	// Handle the execute statement.
 	if execPlan, ok := p.(*plannercore.Execute); ok {
 		err := execPlan.OptimizePreparedPlan(ctx, is)
-		return p, errors.Trace(err)
+		return p, err
 	}
 
 	// Handle the non-logical plan statement.

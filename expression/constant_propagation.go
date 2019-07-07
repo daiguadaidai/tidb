@@ -21,7 +21,8 @@ import (
 	"github.com/daiguadaidai/tidb/types"
 	"github.com/daiguadaidai/tidb/util/chunk"
 	"github.com/daiguadaidai/tidb/util/disjointset"
-	log "github.com/sirupsen/logrus"
+	"github.com/daiguadaidai/tidb/util/logutil"
+	"go.uber.org/zap"
 )
 
 // MaxPropagateColsCnt means the max number of columns that can participate propagation.
@@ -114,8 +115,8 @@ func tryToReplaceCond(ctx sessionctx.Context, src *Column, tgt *Column, cond Exp
 			}
 			args[idx] = tgt
 		} else {
-			subReplaced, isNonDeterminisitic, subExpr := tryToReplaceCond(ctx, src, tgt, expr)
-			if isNonDeterminisitic {
+			subReplaced, isNonDeterministic, subExpr := tryToReplaceCond(ctx, src, tgt, expr)
+			if isNonDeterministic {
 				return false, true, cond
 			} else if subReplaced {
 				replaced = true
@@ -245,7 +246,7 @@ func (s *propConstSolver) pickNewEQConds(visited []bool) (retMapper map[int]*Con
 		var ok bool
 		if col == nil {
 			if con, ok = cond.(*Constant); ok {
-				value, err := EvalBool(s.ctx, []Expression{con}, chunk.Row{})
+				value, _, err := EvalBool(s.ctx, []Expression{con}, chunk.Row{})
 				if err != nil {
 					terror.Log(err)
 					return nil
@@ -280,7 +281,10 @@ func (s *propConstSolver) solve(conditions []Expression) []Expression {
 		s.insertCol(col)
 	}
 	if len(s.columns) > MaxPropagateColsCnt {
-		log.Warnf("[const_propagation]Too many columns in a single CNF: the column count is %d, the max count is %d.", len(s.columns), MaxPropagateColsCnt)
+		logutil.BgLogger().Warn("too many columns in a single CNF",
+			zap.Int("numCols", len(s.columns)),
+			zap.Int("maxNumCols", MaxPropagateColsCnt),
+		)
 		return conditions
 	}
 	s.propagateConstantEQ()
@@ -338,7 +342,7 @@ func (s *propOuterJoinConstSolver) pickEQCondsOnOuterCol(retMapper map[int]*Cons
 		var ok bool
 		if col == nil {
 			if con, ok = cond.(*Constant); ok {
-				value, err := EvalBool(s.ctx, []Expression{con}, chunk.Row{})
+				value, _, err := EvalBool(s.ctx, []Expression{con}, chunk.Row{})
 				if err != nil {
 					terror.Log(err)
 					return nil
@@ -528,7 +532,10 @@ func (s *propOuterJoinConstSolver) solve(joinConds, filterConds []Expression) ([
 		s.insertCol(col)
 	}
 	if len(s.columns) > MaxPropagateColsCnt {
-		log.Warnf("[const_propagation_over_outerjoin] Too many columns: column count is %d, max count is %d.", len(s.columns), MaxPropagateColsCnt)
+		logutil.BgLogger().Warn("too many columns",
+			zap.Int("numCols", len(s.columns)),
+			zap.Int("maxNumCols", MaxPropagateColsCnt),
+		)
 		return joinConds, filterConds
 	}
 	s.propagateConstantEQ()

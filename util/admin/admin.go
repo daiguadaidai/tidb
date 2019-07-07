@@ -32,10 +32,11 @@ import (
 	"github.com/daiguadaidai/tidb/tablecodec"
 	"github.com/daiguadaidai/tidb/types"
 	"github.com/daiguadaidai/tidb/util"
-	decoder "github.com/daiguadaidai/tidb/util/rowDecoder"
+	"github.com/daiguadaidai/tidb/util/logutil"
+	"github.com/daiguadaidai/tidb/util/rowDecoder"
 	"github.com/daiguadaidai/tidb/util/sqlexec"
 	"github.com/pingcap/errors"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // DDLInfo is for DDL information.
@@ -83,38 +84,31 @@ func GetDDLInfo(txn kv.Transaction) (*DDLInfo, error) {
 	return info, nil
 }
 
-func isJobRollbackable(job *model.Job, id int64) error {
+// IsJobRollbackable checks whether the job can be rollback.
+func IsJobRollbackable(job *model.Job) bool {
 	switch job.Type {
 	case model.ActionDropIndex:
 		// We can't cancel if index current state is in StateDeleteOnly or StateDeleteReorganization, otherwise will cause inconsistent between record and index.
 		if job.SchemaState == model.StateDeleteOnly ||
 			job.SchemaState == model.StateDeleteReorganization {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
-		}
-	case model.ActionDropColumn:
-		if job.SchemaState != model.StateNone {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
-		}
-	case model.ActionDropTablePartition, model.ActionAddTablePartition:
-		if job.SchemaState != model.StateNone {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
+			return false
 		}
 	case model.ActionDropSchema, model.ActionDropTable:
 		// To simplify the rollback logic, cannot be canceled in the following states.
 		if job.SchemaState == model.StateWriteOnly ||
 			job.SchemaState == model.StateDeleteOnly {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
+			return false
 		}
-	case model.ActionTruncateTable:
-		if job.SchemaState != model.StateNone {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
-		}
-	case model.ActionRebaseAutoID, model.ActionShardRowID:
-		if job.SchemaState != model.StateNone {
-			return ErrCannotCancelDDLJob.GenWithStackByArgs(id)
-		}
+	case model.ActionDropColumn, model.ActionModifyColumn,
+		model.ActionDropTablePartition, model.ActionAddTablePartition,
+		model.ActionRebaseAutoID, model.ActionShardRowID,
+		model.ActionTruncateTable, model.ActionAddForeignKey,
+		model.ActionDropForeignKey, model.ActionRenameTable,
+		model.ActionModifyTableCharsetAndCollate, model.ActionTruncateTablePartition,
+		model.ActionModifySchemaCharsetAndCollate:
+		return job.SchemaState == model.StateNone
 	}
-	return nil
+	return true
 }
 
 // CancelJobs cancels the DDL jobs.
@@ -134,7 +128,9 @@ func CancelJobs(txn kv.Transaction, ids []int64) ([]error, error) {
 		found := false
 		for j, job := range jobs {
 			if id != job.ID {
-				log.Debugf("the job ID %d that needs to be canceled isn't equal to current job ID %d", id, job.ID)
+				logutil.BgLogger().Debug("the job that needs to be canceled isn't equal to current job",
+					zap.Int64("need to canceled job ID", id),
+					zap.Int64("current job ID", job.ID))
 				continue
 			}
 			found = true
@@ -147,8 +143,8 @@ func CancelJobs(txn kv.Transaction, ids []int64) ([]error, error) {
 			if job.IsCancelled() || job.IsRollingback() || job.IsRollbackDone() {
 				continue
 			}
-			errs[i] = isJobRollbackable(job, id)
-			if errs[i] != nil {
+			if !IsJobRollbackable(job) {
+				errs[i] = ErrCannotCancelDDLJob.GenWithStackByArgs(job.ID)
 				continue
 			}
 
@@ -230,7 +226,7 @@ const DefNumHistoryJobs = 10
 // The maximum count of history jobs is num.
 func GetHistoryDDLJobs(txn kv.Transaction, maxNumJobs int) ([]*model.Job, error) {
 	t := meta.NewMeta(txn)
-	jobs, err := t.GetAllHistoryDDLJobs()
+	jobs, err := t.GetLastNHistoryDDLJobs(maxNumJobs)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -599,13 +595,13 @@ func makeRowDecoder(t table.Table, decodeCol []*table.Column, genExpr map[model.
 	for _, v := range decodeCol {
 		col := cols[v.Offset]
 		tpExpr := decoder.Column{
-			Info: col.ToInfo(),
+			Col: col,
 		}
 		if col.IsGenerated() && !col.GeneratedStored {
 			for _, c := range cols {
 				if _, ok := col.Dependences[c.Name.L]; ok {
 					decodeColsMap[c.ID] = decoder.Column{
-						Info: c.ToInfo(),
+						Col: c,
 					}
 				}
 			}
@@ -613,7 +609,7 @@ func makeRowDecoder(t table.Table, decodeCol []*table.Column, genExpr map[model.
 		}
 		decodeColsMap[col.ID] = tpExpr
 	}
-	return decoder.NewRowDecoder(cols, decodeColsMap)
+	return decoder.NewRowDecoder(t, decodeColsMap)
 }
 
 // genExprs use to calculate generated column value.
@@ -641,7 +637,7 @@ func rowWithCols(sessCtx sessionctx.Context, txn kv.Retriever, t table.Table, h 
 		}
 	}
 
-	rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, value, sessCtx.GetSessionVars().Location(), time.UTC, nil)
+	rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, h, value, sessCtx.GetSessionVars().Location(), time.UTC, nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -691,7 +687,10 @@ func iterRecords(sessCtx sessionctx.Context, retriever kv.Retriever, t table.Tab
 		return nil
 	}
 
-	log.Debugf("startKey:%q, key:%q, value:%q", startKey, it.Key(), it.Value())
+	logutil.BgLogger().Debug("record",
+		zap.Binary("startKey", startKey),
+		zap.Binary("key", it.Key()),
+		zap.Binary("value", it.Value()))
 	rowDecoder := makeRowDecoder(t, cols, genExprs)
 	for it.Valid() && it.Key().HasPrefix(prefix) {
 		// first kv pair is row lock information.
@@ -702,7 +701,7 @@ func iterRecords(sessCtx sessionctx.Context, retriever kv.Retriever, t table.Tab
 			return errors.Trace(err)
 		}
 
-		rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, it.Value(), sessCtx.GetSessionVars().Location(), time.UTC, nil)
+		rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, handle, it.Value(), sessCtx.GetSessionVars().Location(), time.UTC, nil)
 		if err != nil {
 			return errors.Trace(err)
 		}

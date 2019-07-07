@@ -35,7 +35,8 @@ import (
 	"github.com/daiguadaidai/tidb/util/mock"
 	"github.com/daiguadaidai/tidb/util/testleak"
 	. "github.com/pingcap/check"
-	log "github.com/sirupsen/logrus"
+	"github.com/pingcap/log"
+	"go.uber.org/zap"
 )
 
 type DDLForTest interface {
@@ -83,7 +84,7 @@ func (d *ddl) restartWorkers(ctx context.Context) {
 		go util.WithRecovery(func() { w.start(d.ddlCtx) },
 			func(r interface{}) {
 				if r != nil {
-					log.Errorf("[ddl-%s] ddl %s meet panic", w, d.uuid)
+					log.Error("[ddl] restart DDL worker meet panic", zap.String("worker", w.String()), zap.String("ID", d.uuid))
 				}
 			})
 		asyncNotify(worker.ddlJobCh)
@@ -94,7 +95,7 @@ func TestT(t *testing.T) {
 	CustomVerboseFlag = true
 	*CustomParallelSuiteFlag = true
 	logLevel := os.Getenv("log_level")
-	logutil.InitLogger(logutil.NewLogConfig(logLevel, "highlight", "", logutil.EmptyFileLogConfig, false))
+	logutil.InitLogger(logutil.NewLogConfig(logLevel, "", "", logutil.EmptyFileLogConfig, false))
 	autoid.SetStep(5000)
 	ReorgWaitTimeout = 30 * time.Millisecond
 

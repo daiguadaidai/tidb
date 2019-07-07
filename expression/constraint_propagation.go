@@ -22,7 +22,8 @@ import (
 	"github.com/daiguadaidai/tidb/sessionctx/stmtctx"
 	"github.com/daiguadaidai/tidb/types"
 	"github.com/daiguadaidai/tidb/util/chunk"
-	log "github.com/sirupsen/logrus"
+	"github.com/daiguadaidai/tidb/util/logutil"
+	"go.uber.org/zap"
 )
 
 // exprSet is a Set container for expressions, each expression in it is unique.
@@ -150,7 +151,7 @@ func ruleConstantFalse(ctx sessionctx.Context, i, j int, exprs *exprSet) {
 	if cons, ok := cond.(*Constant); ok {
 		v, isNull, err := cons.EvalInt(ctx, chunk.Row{})
 		if err != nil {
-			log.Error(err)
+			logutil.BgLogger().Warn("eval constant", zap.Error(err))
 			return
 		}
 		if !isNull && v == 0 {
@@ -247,7 +248,7 @@ func ruleColumnOPConst(ctx sessionctx.Context, i, j int, exprs *exprSet) {
 		var err error
 		fc1, err = NewFunction(ctx, scalarFunc.FuncName.L, scalarFunc.RetType, con1)
 		if err != nil {
-			log.Warn(err)
+			logutil.BgLogger().Warn("build new function in ruleColumnOPConst", zap.Error(err))
 			return
 		}
 	}
@@ -270,7 +271,7 @@ func ruleColumnOPConst(ctx sessionctx.Context, i, j int, exprs *exprSet) {
 	}
 	v, isNull, err := compareConstant(ctx, negOP(OP2), fc1, con2)
 	if err != nil {
-		log.Warn(err)
+		logutil.BgLogger().Warn("comparing constant in ruleColumnOPConst", zap.Error(err))
 		return
 	}
 	if !isNull && v > 0 {

@@ -208,7 +208,13 @@ func (s *testSuite) TestOuterJoinPropConst(c *C) {
 		"│ └─TableScan_7 10000.00 cop table:t1, range:[-inf,+inf], keep order:false, stats:pseudo",
 		"└─TableDual_9 8000.00 root rows:0",
 	))
-	tk.MustQuery("explain select * from t1 left join t2 on t1.a =1 and t1.a = 2;").Check(testkit.Rows(
+	tk.MustQuery("explain select * from t1 right join t2 on false;").Check(testkit.Rows(
+		"HashRightJoin_6 80000000.00 root right outer join, inner:TableDual_7",
+		"├─TableDual_7 8000.00 root rows:0",
+		"└─TableReader_9 10000.00 root data:TableScan_8",
+		"  └─TableScan_8 10000.00 cop table:t2, range:[-inf,+inf], keep order:false, stats:pseudo",
+	))
+	tk.MustQuery("explain select * from t1 left join t2 on t1.a = 1 and t1.a = 2;").Check(testkit.Rows(
 		"HashLeftJoin_6 80000000.00 root left outer join, inner:TableDual_9",
 		"├─TableReader_8 10000.00 root data:TableScan_7",
 		"│ └─TableScan_7 10000.00 cop table:t1, range:[-inf,+inf], keep order:false, stats:pseudo",
@@ -245,11 +251,11 @@ func (s *testSuite) TestOuterJoinPropConst(c *C) {
 		"└─TableReader_12 10000.00 root data:TableScan_11",
 		"  └─TableScan_11 10000.00 cop table:t2, range:[-inf,+inf], keep order:false, stats:pseudo",
 	))
-	// Constant propagation over left outer semi join, filter with aux column should be be derived.
+	// Constant propagation over left outer semi join, filter with aux column should not be derived.
 	tk.MustQuery("explain select * from t1 where t1.b > 1 or t1.b in (select b from t2);").Check(testkit.Rows(
 		"Projection_7 8000.00 root test.t1.id, test.t1.a, test.t1.b",
 		"└─Selection_8 8000.00 root or(gt(test.t1.b, 1), 5_aux_0)",
-		"  └─HashLeftJoin_9 10000.00 root left outer semi join, inner:TableReader_13, equal:[eq(test.t1.b, test.t2.b)]",
+		"  └─HashLeftJoin_9 10000.00 root left outer semi join, inner:TableReader_13, other cond:eq(test.t1.b, test.t2.b)",
 		"    ├─TableReader_11 10000.00 root data:TableScan_10",
 		"    │ └─TableScan_10 10000.00 cop table:t1, range:[-inf,+inf], keep order:false, stats:pseudo",
 		"    └─TableReader_13 10000.00 root data:TableScan_12",

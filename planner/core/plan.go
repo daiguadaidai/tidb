@@ -16,11 +16,13 @@ package core
 import (
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/daiguadaidai/parser/ast"
 	"github.com/daiguadaidai/tidb/expression"
 	"github.com/daiguadaidai/tidb/planner/property"
 	"github.com/daiguadaidai/tidb/sessionctx"
+	"github.com/daiguadaidai/tidb/util/stringutil"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tipb/go-tipb"
 )
@@ -34,7 +36,7 @@ type Plan interface {
 	// Get the ID.
 	ID() int
 	// Get the ID in explain statement
-	ExplainID() string
+	ExplainID() fmt.Stringer
 	// replaceExprColumns replace all the column reference in the plan's expression node.
 	replaceExprColumns(replace map[string]*expression.Column)
 
@@ -258,8 +260,10 @@ func (p *basePlan) statsInfo() *property.StatsInfo {
 	return p.stats
 }
 
-func (p *basePlan) ExplainID() string {
-	return fmt.Sprintf("%s_%d", p.tp, p.id)
+func (p *basePlan) ExplainID() fmt.Stringer {
+	return stringutil.MemoizeStr(func() string {
+		return p.tp + "_" + strconv.Itoa(p.id)
+	})
 }
 
 // Schema implements Plan Schema interface.
@@ -301,5 +305,5 @@ func (p *baseLogicalPlan) findColumn(column *ast.ColumnName) (*expression.Column
 	if err == nil && col == nil {
 		err = errors.Errorf("column %s not found", column.Name.O)
 	}
-	return col, idx, errors.Trace(err)
+	return col, idx, err
 }

@@ -26,14 +26,14 @@ import (
 	"github.com/daiguadaidai/tidb/util/logutil"
 	"github.com/daiguadaidai/tidb/util/testleak"
 	. "github.com/pingcap/check"
-	gofail "github.com/pingcap/gofail/runtime"
+	"github.com/pingcap/failpoint"
 	"google.golang.org/grpc"
 )
 
 func TestT(t *testing.T) {
 	CustomVerboseFlag = true
 	logLevel := os.Getenv("log_level")
-	logutil.InitLogger(logutil.NewLogConfig(logLevel, "highlight", "", logutil.EmptyFileLogConfig, false))
+	logutil.InitLogger(logutil.NewLogConfig(logLevel, "", "", logutil.EmptyFileLogConfig, false))
 	TestingT(t)
 }
 
@@ -75,8 +75,9 @@ func (s *testSuite) TestFailNewSession(c *C) {
 			if cli != nil {
 				cli.Close()
 			}
+			c.Assert(failpoint.Disable("github.com/daiguadaidai/tidb/owner/closeClient"), IsNil)
 		}()
-		gofail.Enable("github.com/daiguadaidai/tidb/owner/closeClient", `return(true)`)
+		c.Assert(failpoint.Enable("github.com/daiguadaidai/tidb/owner/closeClient", `return(true)`), IsNil)
 		_, err = NewSession(context.Background(), "fail_new_serssion", cli, retryCnt, ManagerSessionTTL)
 		isContextDone := terror.ErrorEqual(grpc.ErrClientConnClosing, err) || terror.ErrorEqual(context.Canceled, err)
 		c.Assert(isContextDone, IsTrue, Commentf("err %v", err))
@@ -92,8 +93,9 @@ func (s *testSuite) TestFailNewSession(c *C) {
 			if cli != nil {
 				cli.Close()
 			}
+			c.Assert(failpoint.Disable("github.com/daiguadaidai/tidb/owner/closeGrpc"), IsNil)
 		}()
-		gofail.Enable("github.com/daiguadaidai/tidb/owner/closeGrpc", `return(true)`)
+		c.Assert(failpoint.Enable("github.com/daiguadaidai/tidb/owner/closeGrpc", `return(true)`), IsNil)
 		_, err = NewSession(context.Background(), "fail_new_serssion", cli, retryCnt, ManagerSessionTTL)
 		isContextDone := terror.ErrorEqual(grpc.ErrClientConnClosing, err) || terror.ErrorEqual(context.Canceled, err)
 		c.Assert(isContextDone, IsTrue, Commentf("err %v", err))

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/daiguadaidai/parser/terror"
 	"github.com/daiguadaidai/tidb/kv"
 	"github.com/daiguadaidai/tidb/store/mockstore"
 	"github.com/daiguadaidai/tidb/util"
@@ -133,6 +134,15 @@ func (s *testPrefixSuite) TestPrefix(c *C) {
 		return true
 	})
 	c.Assert(err, IsNil)
+	err = util.ScanMetaWithPrefix(txn, k, func(kv.Key, []byte) bool {
+		return false
+	})
+	c.Assert(err, IsNil)
+	err = util.DelKeyWithPrefix(txn, []byte("key"))
+	c.Assert(err, IsNil)
+	_, err = txn.Get(k)
+	c.Assert(terror.ErrorEqual(kv.ErrNotExist, err), IsTrue)
+
 	err = txn.Commit(context.Background())
 	c.Assert(err, IsNil)
 }

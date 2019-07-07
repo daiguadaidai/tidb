@@ -25,7 +25,6 @@ import (
 	"github.com/daiguadaidai/tidb/util/testleak"
 	. "github.com/pingcap/check"
 	"github.com/pingcap/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Suite(&testUnitTestSuit{})
@@ -190,8 +189,7 @@ func (s *testUnitTestSuit) TestIndexPathSplitCorColCond(c *C) {
 			idxColLens:   tt.idxColLens,
 		}
 
-		logrus.Warnf("idx cols: %v", path.idxCols)
-		access, remained := path.splitCorColAccessCondFromFilters()
+		access, remained := path.splitCorColAccessCondFromFilters(path.eqCondCount)
 		c.Assert(fmt.Sprintf("%s", access), Equals, tt.access, comment)
 		c.Assert(fmt.Sprintf("%s", remained), Equals, tt.remained, comment)
 	}

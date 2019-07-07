@@ -21,6 +21,7 @@ import (
 	"github.com/daiguadaidai/tidb/types"
 	"github.com/daiguadaidai/tidb/types/json"
 	"github.com/daiguadaidai/tidb/util/chunk"
+	"github.com/daiguadaidai/tidb/util/stringutil"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tipb/go-tipb"
 )
@@ -420,7 +421,7 @@ func (b *builtinSetVarSig) evalString(row chunk.Row) (res string, isNull bool, e
 	}
 	varName = strings.ToLower(varName)
 	sessionVars.UsersLock.Lock()
-	sessionVars.Users[varName] = res
+	sessionVars.Users[varName] = stringutil.Copy(res)
 	sessionVars.UsersLock.Unlock()
 	return res, false, nil
 }

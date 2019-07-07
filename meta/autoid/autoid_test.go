@@ -26,6 +26,7 @@ import (
 	"github.com/daiguadaidai/tidb/store/mockstore"
 	. "github.com/pingcap/check"
 	"github.com/pingcap/errors"
+	"github.com/pingcap/failpoint"
 )
 
 func TestT(t *testing.T) {
@@ -39,6 +40,11 @@ type testSuite struct {
 }
 
 func (*testSuite) TestT(c *C) {
+	c.Assert(failpoint.Enable("github.com/daiguadaidai/tidb/meta/autoid/mockAutoIDChange", `return(true)`), IsNil)
+	defer func() {
+		c.Assert(failpoint.Disable("github.com/daiguadaidai/tidb/meta/autoid/mockAutoIDChange"), IsNil)
+	}()
+
 	store, err := mockstore.NewMockTikvStore()
 	c.Assert(err, IsNil)
 	defer store.Close()
@@ -130,6 +136,11 @@ func (*testSuite) TestT(c *C) {
 }
 
 func (*testSuite) TestUnsignedAutoid(c *C) {
+	c.Assert(failpoint.Enable("github.com/daiguadaidai/tidb/meta/autoid/mockAutoIDChange", `return(true)`), IsNil)
+	defer func() {
+		c.Assert(failpoint.Disable("github.com/daiguadaidai/tidb/meta/autoid/mockAutoIDChange"), IsNil)
+	}()
+
 	store, err := mockstore.NewMockTikvStore()
 	c.Assert(err, IsNil)
 	defer store.Close()
@@ -314,4 +325,14 @@ func (*testSuite) TestRollbackAlloc(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(alloc.Base(), Equals, int64(0))
 	c.Assert(alloc.End(), Equals, int64(0))
+}
+
+// TestNextStep tests generate next auto id step.
+func (*testSuite) TestNextStep(c *C) {
+	nextStep := autoid.NextStep(2000000, 1*time.Nanosecond)
+	c.Assert(nextStep, Equals, int64(2000000))
+	nextStep = autoid.NextStep(678910, 10*time.Second)
+	c.Assert(nextStep, Equals, int64(678910))
+	nextStep = autoid.NextStep(50000, 10*time.Minute)
+	c.Assert(nextStep, Equals, int64(1000))
 }

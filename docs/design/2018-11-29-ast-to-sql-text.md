@@ -83,7 +83,7 @@ Detailed list at [pingcap/tidb#8532](https://github.com/daiguadaidai/tidb/issues
 
 ### Example
 
-I implemented the `Restore` function of [ast.CreateDatabasesStmt](https://github.com/daiguadaidai/parser/blob/ce5a9247faef2b6876054935a0b0ed3771edf86d/ast/ddl.go#L67)
+I implemented the `Restore` function of [ast.CreateDatabasesStmt](https://github.com/daiguadaidai/parser/blob/ce5a9247faef2b6876054935a0b0ed3771edf86d/ast/ddl.go#L67) 
 and [ast.DropDatabaseStmt](https://github.com/daiguadaidai/parser/blob/ce5a9247faef2b6876054935a0b0ed3771edf86d/ast/ddl.go#L130) for examples.
 
 ```go

@@ -17,13 +17,24 @@ import (
 	"time"
 
 	"github.com/daiguadaidai/tidb/sessionctx/stmtctx"
+	"github.com/daiguadaidai/tidb/types"
 	. "github.com/pingcap/check"
 )
+
+// extractSampleItemsDatums is for test purpose only to extract Datum slice
+// from SampleItem slice.
+func extractSampleItemsDatums(items []*SampleItem) []types.Datum {
+	datums := make([]types.Datum, len(items))
+	for i, item := range items {
+		datums[i] = item.Value
+	}
+	return datums
+}
 
 func (s *testStatisticsSuite) TestSketch(c *C) {
 	sc := &stmtctx.StatementContext{TimeZone: time.Local}
 	maxSize := 1000
-	sampleSketch, ndv, err := buildFMSketch(sc, s.samples, maxSize)
+	sampleSketch, ndv, err := buildFMSketch(sc, extractSampleItemsDatums(s.samples), maxSize)
 	c.Check(err, IsNil)
 	c.Check(ndv, Equals, int64(6232))
 
@@ -51,7 +62,7 @@ func (s *testStatisticsSuite) TestSketch(c *C) {
 func (s *testStatisticsSuite) TestSketchProtoConversion(c *C) {
 	sc := &stmtctx.StatementContext{TimeZone: time.Local}
 	maxSize := 1000
-	sampleSketch, ndv, err := buildFMSketch(sc, s.samples, maxSize)
+	sampleSketch, ndv, err := buildFMSketch(sc, extractSampleItemsDatums(s.samples), maxSize)
 	c.Check(err, IsNil)
 	c.Check(ndv, Equals, int64(6232))
 

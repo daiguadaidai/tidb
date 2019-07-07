@@ -123,6 +123,11 @@ func (col *CorrelatedColumn) IsCorrelated() bool {
 	return true
 }
 
+// ConstItem implements Expression interface.
+func (col *CorrelatedColumn) ConstItem() bool {
+	return true
+}
+
 // Decorrelate implements Expression interface.
 func (col *CorrelatedColumn) Decorrelate(schema *Schema) Expression {
 	if !schema.Contains(&col.Column) {
@@ -162,6 +167,10 @@ type Column struct {
 	Index int
 
 	hashcode []byte
+
+	// InOperand indicates whether this column is the inner operand of column equal condition converted
+	// from `[not] in (subq)`.
+	InOperand bool
 }
 
 // Equal implements Expression interface.
@@ -290,6 +299,11 @@ func (col *Column) Clone() Expression {
 
 // IsCorrelated implements Expression interface.
 func (col *Column) IsCorrelated() bool {
+	return false
+}
+
+// ConstItem implements Expression interface.
+func (col *Column) ConstItem() bool {
 	return false
 }
 
