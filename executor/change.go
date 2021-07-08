@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"github.com/daiguadaidai/parser/ast"
-	"github.com/daiguadaidai/tidb-tools/tidb-binlog/node"
+	"github.com/pingcap/tidb-tools/tidb-binlog/node"
 	"github.com/daiguadaidai/tidb/config"
 	"github.com/daiguadaidai/tidb/util/chunk"
 	"github.com/pingcap/errors"

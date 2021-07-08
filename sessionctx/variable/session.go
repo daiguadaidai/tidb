@@ -27,7 +27,7 @@ import (
 	"github.com/daiguadaidai/parser/auth"
 	"github.com/daiguadaidai/parser/mysql"
 	"github.com/daiguadaidai/parser/terror"
-	pumpcli "github.com/daiguadaidai/tidb-tools/tidb-binlog/pump_client"
+	pumpcli "github.com/pingcap/tidb-tools/tidb-binlog/pump_client"
 	"github.com/daiguadaidai/tidb/config"
 	"github.com/daiguadaidai/tidb/kv"
 	"github.com/daiguadaidai/tidb/meta/autoid"

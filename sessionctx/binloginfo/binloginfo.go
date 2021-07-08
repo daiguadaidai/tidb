@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/daiguadaidai/parser/terror"
-	"github.com/daiguadaidai/tidb-tools/tidb-binlog/node"
-	pumpcli "github.com/daiguadaidai/tidb-tools/tidb-binlog/pump_client"
+	"github.com/pingcap/tidb-tools/tidb-binlog/node"
+	pumpcli "github.com/pingcap/tidb-tools/tidb-binlog/pump_client"
 	"github.com/daiguadaidai/tidb/kv"
 	"github.com/daiguadaidai/tidb/metrics"
 	"github.com/daiguadaidai/tidb/sessionctx"

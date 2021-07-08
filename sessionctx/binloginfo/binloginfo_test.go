@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/daiguadaidai/parser/terror"
-	pumpcli "github.com/daiguadaidai/tidb-tools/tidb-binlog/pump_client"
+	pumpcli "github.com/pingcap/tidb-tools/tidb-binlog/pump_client"
 	"github.com/daiguadaidai/tidb/ddl"
 	"github.com/daiguadaidai/tidb/domain"
 	"github.com/daiguadaidai/tidb/kv"
