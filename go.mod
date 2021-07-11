@@ -45,7 +45,7 @@ require (
 	github.com/twinj/uuid v1.0.0
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	go.uber.org/atomic v1.5.1
-	go.uber.org/zap v1.13.0
+	go.uber.org/zap v1.12.0
 	golang.org/x/net v0.0.0-20191204025024-5ee1b9f4859a
 	golang.org/x/sys v0.0.0-20191204072324-ce4227a45e2e
 	golang.org/x/text v0.3.2

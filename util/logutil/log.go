@@ -55,7 +55,6 @@ type FileLogConfig struct {
 // NewFileLogConfig creates a FileLogConfig.
 func NewFileLogConfig(rotate bool, maxSize uint) FileLogConfig {
 	return FileLogConfig{FileLogConfig: zaplog.FileLogConfig{
-		LogRotate: rotate,
 		MaxSize:   int(maxSize),
 	},
 	}
@@ -285,7 +284,6 @@ func InitZapLogger(cfg *LogConfig) error {
 
 	if len(cfg.SlowQueryFile) != 0 {
 		sqfCfg := zaplog.FileLogConfig{
-			LogRotate: cfg.File.LogRotate,
 			MaxSize:   cfg.File.MaxSize,
 			Filename:  cfg.SlowQueryFile,
 		}
