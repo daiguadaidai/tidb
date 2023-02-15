@@ -11,7 +11,7 @@ require (
 	github.com/daiguadaidai/parser v0.0.0-20191128021019-0d5d565775dd
 	github.com/dgryski/go-farm v0.0.0-20191112170834-c2139c5d712b
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.4.3
 	github.com/google/btree v1.0.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
@@ -33,12 +33,12 @@ require (
 	github.com/pingcap/pd v2.1.18+incompatible
 	github.com/pingcap/tidb-tools v2.1.4+incompatible
 	github.com/pingcap/tipb v0.0.0-20191203131953-a35f738b4796
-	github.com/prometheus/client_golang v1.2.1
-	github.com/prometheus/client_model v0.0.0-20191202183732-d1d2010b5bee
+	github.com/prometheus/client_golang v1.11.1
+	github.com/prometheus/client_model v0.2.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237 // indirect
 	github.com/shirou/gopsutil v2.19.11+incompatible
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/struCoder/pidusage v0.1.2
 	github.com/tiancaiamao/appdash v0.0.0-20181126055449-889f96f722a2
@@ -46,8 +46,8 @@ require (
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	go.uber.org/atomic v1.5.1
 	go.uber.org/zap v1.12.0
-	golang.org/x/net v0.0.0-20191204025024-5ee1b9f4859a
-	golang.org/x/sys v0.0.0-20191204072324-ce4227a45e2e
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	golang.org/x/tools v0.0.0-20191205060818-73c7173a9f7d
