@@ -46,11 +46,11 @@ require (
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	go.uber.org/atomic v1.5.1
 	go.uber.org/zap v1.12.0
-	golang.org/x/net v0.0.0-20191204025024-5ee1b9f4859a
-	golang.org/x/sys v0.0.0-20191204072324-ce4227a45e2e
-	golang.org/x/text v0.3.2
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
+	golang.org/x/text v0.3.8
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	golang.org/x/tools v0.0.0-20191205060818-73c7173a9f7d
+	golang.org/x/tools v0.1.12
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/grpc v1.25.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
